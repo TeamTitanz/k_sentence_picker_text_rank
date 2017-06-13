@@ -16,7 +16,10 @@ def open_file(file_name):
 def sentence_splitter(file_name):
 
     document = open_file(file_name)
-    document = ' '.join(document.strip().split('\n'))
+    document.replace("." , " ")
+    document = '. '.join(document.strip().split(' \n'))
+    document.replace('\n', " ")
+
     sentence_tokenizer = PunktSentenceTokenizer()
     sentences = sentence_tokenizer.tokenize(document)
     return sentences
@@ -82,7 +85,7 @@ def store_sentences(n, k):
 
 
 n = 26 # number of legal case docs
-k = 10  # number of sentences to be returned by textrank
+k = 20  # number of sentences to be returned by textrank
 store_sentences(n, k)
 
 # print(ranker("Cases/case0.txt", 10))
