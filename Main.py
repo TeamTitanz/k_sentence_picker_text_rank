@@ -14,6 +14,7 @@ def open_file(file_name):
 
 
 def sentence_splitter(file_name):
+
     document = open_file(file_name)
     document = ' '.join(document.strip().split('\n'))
     sentence_tokenizer = PunktSentenceTokenizer()
@@ -68,14 +69,20 @@ def store_sentences(n, k):
     r_matrix = []
     r_matrix.append([])
     for i in range(0, n):
-        ranked = ranker("Cases/sampleCase.txt", k)
+        file_name = "Cases/case" + str(i) + str(".txt")
+        ranked = ranker(file_name, k)
 
+        file_name = "Output/case_" + str(i) + ".txt"
+        f = open(file_name, "w")
         for j in range(0, k):
-            file_name = "Output/case_" + str(i)
-            f = open(file_name, "w")
+
+
             print(ranked[j][1], file=f)
 
 
-n = 35000  # number of legal case docs
-k = 20  # number of sentences to be returned by textrank
+
+n = 26 # number of legal case docs
+k = 10  # number of sentences to be returned by textrank
 store_sentences(n, k)
+
+# print(ranker("Cases/case0.txt", 10))
