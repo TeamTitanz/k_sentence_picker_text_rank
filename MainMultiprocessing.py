@@ -1,12 +1,21 @@
 from __future__ import print_function
 
-from nltk.tokenize.punkt import PunktSentenceTokenizer
+import os
+import os.path
 from collections import Counter
+from multiprocessing import Pool
+
+import networkx as nx
+import nltk.data
+from nltk.tokenize.punkt import PunktSentenceTokenizer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
-import networkx as nx
-import os, os.path
-from multiprocessing import Pool
+
+#nltk.download('punkt')
+
+
+k = 40 # number of sentences to be returned by textrank
+number_of_process = 4
 
 
 def open_file(file_name):
@@ -19,25 +28,20 @@ def remove_non_ascii(text):
 
 
 def sentence_splitter(file_name):
-    with open(file_name) as f:
-        content = f.readlines()
-    content = [x.strip() for x in content]
 
-    paragraph = []
+    fp = open(file_name)
+    data = remove_non_ascii(fp.read())
+
+    tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    content = tokenizer.tokenize(data)
+    sentences = []
+
     for sentence in content:
-        sentences = sentence.split(".")
-        for tem in sentences:
-            space = tem.count(" ")
-            if (tem != "" and space > 2):
-                paragraph.append(remove_non_ascii(tem))
+        sentence = sentence.replace('\r', '').replace('\n', '')
+        sentences.append(sentence.replace(".", " "))
+    # print ('\n'.join(sentences))
 
-    content = ". ".join(paragraph)
-
-    # document = open_file(file_name)
-    # document.replace("." , " ")
-    # document = '. '.join(document.strip().split(' \n'))
-    # document.replace('\n', " ")
-
+    content = ". ".join(sentences)
     sentence_tokenizer = PunktSentenceTokenizer()
     sentences = sentence_tokenizer.tokenize(content)
     return sentences
@@ -72,14 +76,12 @@ def sentence_ranker(similarity_graph):
 
 
 def score_sorter(scores, sentences):
-    ranked = sorted(((scores[i], s) for i, s in enumerate(sentences)),
-                    reverse=True)
+    ranked = sorted(((scores[i], s) for i, s in enumerate(sentences)), reverse=True)
     return ranked
 
 
 def ranker(file_name, k):
     sentences = sentence_splitter(file_name)
-    sentence_to_file(file_name, sentences)
     bow_matrix = create_matrix(sentences)
     similarity_graph = get_similairty_graph(bow_matrix)
     scores = sentence_ranker(similarity_graph)
@@ -87,30 +89,22 @@ def ranker(file_name, k):
     return ranked[0:k]
 
 
-def sentence_to_file(file_name, sentences):
-    file_name = "SentenceOutput/" + file_name
-    f = open(file_name, "w")
-    for s in sentences:
-        print(s, file=f)
-    print("Sentence collection for doc - Done")
-
-
 def process_file(file_name):
-    n = 2  # number of legal case docs
-    k = 10  # number of sentences to be returned by textrank
+    global k
     print (file_name)
-    rank_file_name = "Cases/" + file_name + ".txt"
+    rank_file_name = os.path.join("Cases", file_name + ".txt")
     ranked = ranker(rank_file_name, k)
 
-    output_file_name = "Output/" + file_name + ".txt"
+    output_file_name = os.path.join("Output", file_name + ".txt")
     f = open(output_file_name, "w")
     for j in range(0, k):
-        print(ranked[j][1], file=f)
+        print(ranked[j][1].replace(" .", "."), file=f)
 
     return True
 
 
-def store_sentences(n, k):
+def store_sentences():
+    global number_of_process
     r_matrix = []
     r_matrix.append([])
 
@@ -123,13 +117,11 @@ def store_sentences(n, k):
         nameIndex.append(fn.split(".")[0])
     nameIndex.sort()
 
-    p = Pool(8)
-    success = p.map(process_file, nameIndex)
+    p = Pool(number_of_process)
+    p.map(process_file, nameIndex)
+
 
 if __name__ == '__main__':
-    n = 2  # number of legal case docs
-    k = 10  # number of sentences to be returned by textrank
     print("k sentence picking is started")
-    store_sentences(n, k)
+    store_sentences()
     print("k sentence picking is finished")
-    # print(ranker("Cases/case0.txt", 10))
